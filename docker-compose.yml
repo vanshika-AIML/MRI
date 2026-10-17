@@ -1,0 +1,66 @@
+# Docker Compose configuration for AI-Assisted MRI Image Enhancement and Abnormality Detection
+# Phase 3: PostgreSQL + pgvector database is active.
+
+
+services:
+  # Backend API service (FastAPI)
+  backend:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.backend
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - DEBUG=false
+      - SECRET_KEY=${SECRET_KEY:-}
+      - POSTGRES_SERVER=db
+      - REDIS_HOST=redis
+      - DATABASE_URL=postgresql+psycopg://mri_user:mri_password@db:5432/mri_db
+    depends_on:
+      db:
+        condition: service_healthy
+    profiles:
+      - full-stack
+
+  # Frontend Web application (React + Vite)
+  frontend-web:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.frontend
+    ports:
+      - "127.0.0.1:5173:80"
+    profiles:
+      - full-stack
+
+  # PostgreSQL with pgvector extension (Phase 3)
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: mri_db
+      POSTGRES_USER: mri_user
+      POSTGRES_PASSWORD: mri_password
+    ports:
+      - "127.0.0.1:55433:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mri_user -d mri_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis message broker and caching (Deferred to later phases)
+  # redis:
+  #   image: redis:7-alpine
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis-data:/data
+  #   profiles:
+  #     - full-stack
+
+volumes:
+  postgres-data:
+  redis-data:
+

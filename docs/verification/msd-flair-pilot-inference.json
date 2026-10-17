@@ -1,0 +1,12 @@
+{
+  "research_only": true,
+  "input_sha256": "aab2c71bceb7cb9fa274a0f688903de21bc7cf0e83f6cd33fac8d1d76e1bcec8",
+  "weights_sha256": "036ac63641c4aeeb1dd8e2c0087208feaf8b42ff525b8cb16032ef33e2f48ecf",
+  "mask_sha256": "133f7f8775c8f583779b7e14e26196b82095e82df09d92b7566dbce2fffd5d55",
+  "mask": "ml\\runs\\msd-flair-pilot\\BRATS_096-prediction.nii.gz",
+  "orientation": "RAS canonical, NIfTI affine retained",
+  "predicted_voxels": 87513,
+  "target": "whole_tumor_label_gt_0",
+  "modality_required": "FLAIR",
+  "warning": "Experimental segmentation; does not establish tumor presence, subtype, grade, or clinical diagnosis."
+}

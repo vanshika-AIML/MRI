@@ -1,0 +1,142 @@
+{
+  "model": "compact_2d_unet",
+  "research_only": true,
+  "task": "whole_tumor_label_gt_0",
+  "modality": "FLAIR",
+  "size": 96,
+  "slice_stride": 6,
+  "threshold": 0.5,
+  "seed": 20261016,
+  "torch": "2.14.1+cpu",
+  "device": "cpu",
+  "gpu": null,
+  "patient_counts": {
+    "train": 48,
+    "val": 8,
+    "test": 8
+  },
+  "epochs": 10,
+  "best_validation_dice": 0.7315007181993635,
+  "test": {
+    "mean_patient_dice": 0.7734917030216624,
+    "patients": [
+      {
+        "patient_id": "BRATS_096",
+        "dice": 0.8562983174170077,
+        "iou": 0.7487077534791252,
+        "sensitivity": 0.91452161243322,
+        "specificity": 0.9980804606894346,
+        "counts_tp_fp_fn_tn": [
+          1883,
+          456,
+          176,
+          237101
+        ]
+      },
+      {
+        "patient_id": "BRATS_122",
+        "dice": 0.8917480035492458,
+        "iou": 0.8046437149719776,
+        "sensitivity": 0.8769633507853403,
+        "specificity": 0.9995680798423282,
+        "counts_tp_fp_fn_tn": [
+          1005,
+          103,
+          141,
+          238367
+        ]
+      },
+      {
+        "patient_id": "BRATS_350",
+        "dice": 0.7068209014758676,
+        "iou": 0.5465761875385564,
+        "sensitivity": 0.60893470790378,
+        "specificity": 0.9993029925134678,
+        "counts_tp_fp_fn_tn": [
+          886,
+          166,
+          569,
+          237995
+        ]
+      },
+      {
+        "patient_id": "BRATS_479",
+        "dice": 0.6948738812042311,
+        "iou": 0.5324189526184538,
+        "sensitivity": 0.8708361658735554,
+        "specificity": 0.9960738205715005,
+        "counts_tp_fp_fn_tn": [
+          1281,
+          935,
+          190,
+          237210
+        ]
+      },
+      {
+        "patient_id": "BRATS_276",
+        "dice": 0.43219017926734216,
+        "iou": 0.27566492667163806,
+        "sensitivity": 0.2979580870499731,
+        "specificity": 0.9987240031539589,
+        "counts_tp_fp_fn_tn": [
+          1109,
+          301,
+          2613,
+          235593
+        ]
+      },
+      {
+        "patient_id": "BRATS_053",
+        "dice": 0.8271706381813202,
+        "iou": 0.7052779075198505,
+        "sensitivity": 0.7599396074484147,
+        "specificity": 0.9993519309511886,
+        "counts_tp_fp_fn_tn": [
+          1510,
+          154,
+          477,
+          237475
+        ]
+      },
+      {
+        "patient_id": "BRATS_345",
+        "dice": 0.8887287402709715,
+        "iou": 0.7997405966277562,
+        "sensitivity": 0.9465766042370279,
+        "specificity": 0.9974699503721034,
+        "counts_tp_fp_fn_tn": [
+          3083,
+          598,
+          174,
+          235761
+        ]
+      },
+      {
+        "patient_id": "BRATS_343",
+        "dice": 0.8901029628073125,
+        "iou": 0.8019689511548656,
+        "sensitivity": 0.9480752014324082,
+        "specificity": 0.998285463935766,
+        "counts_tp_fp_fn_tn": [
+          2118,
+          407,
+          116,
+          236975
+        ]
+      }
+    ]
+  },
+  "test_dice_bootstrap_95ci": [
+    0.6630291632722901,
+    0.8613782625583468
+  ],
+  "elapsed_seconds": 497.4057201000396,
+  "weights_sha256": "036ac63641c4aeeb1dd8e2c0087208feaf8b42ff525b8cb16032ef33e2f48ecf",
+  "limitations": [
+    "Small public-dataset subset; not clinical validation",
+    "Binary whole-tumor mask, no subtype or grade",
+    "Metrics measured at resized resolution on sampled axial slices",
+    "No external-site cohort or healthy control specificity",
+    "Not approved for diagnosis; no automatic promotion to production"
+  ]
+}

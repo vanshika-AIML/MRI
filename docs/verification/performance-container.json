@@ -1,0 +1,95 @@
+{
+  "pipeline": {
+    "clahe_2d": {
+      "name": "CLAHE 2D (256x256)",
+      "mean_ms": 0.376370019512251,
+      "std_ms": 0.03400289421544137,
+      "p50_ms": 0.36310002906247973,
+      "p95_ms": 0.43987496173940605,
+      "min_ms": 0.3415000392124057,
+      "max_ms": 0.48310006968677044,
+      "iterations": 20
+    },
+    "denoise_2d": {
+      "name": "Gaussian Denoise 2D (256x256)",
+      "mean_ms": 0.13650499167852104,
+      "std_ms": 0.010815052359262039,
+      "p50_ms": 0.13305002357810736,
+      "p95_ms": 0.15434999950230124,
+      "min_ms": 0.12780004180967808,
+      "max_ms": 0.17809995915740728,
+      "iterations": 20
+    },
+    "intensity_2d": {
+      "name": "Intensity Detector 2D (256x256)",
+      "mean_ms": 0.5724149930756539,
+      "std_ms": 0.04278008129978719,
+      "p50_ms": 0.5565499304793775,
+      "p95_ms": 0.6475500238593668,
+      "min_ms": 0.5316999740898609,
+      "max_ms": 0.6922000320628285,
+      "iterations": 20
+    },
+    "texture_2d": {
+      "name": "Texture Detector 2D (256x256)",
+      "mean_ms": 3.0048599932342768,
+      "std_ms": 0.1672254094365352,
+      "p50_ms": 3.0251499847508967,
+      "p95_ms": 3.1966299982741475,
+      "min_ms": 2.7126000495627522,
+      "max_ms": 3.2022999366745353,
+      "iterations": 10
+    },
+    "full_pipeline_2d": {
+      "name": "Full Pipeline 2D (256x256)",
+      "mean_ms": 3.4072000067681074,
+      "std_ms": 0.1873297753085171,
+      "p50_ms": 3.42700001783669,
+      "p95_ms": 3.6673799506388605,
+      "min_ms": 3.0747000128030777,
+      "max_ms": 3.688800032250583,
+      "iterations": 15
+    },
+    "clahe_3d": {
+      "name": "CLAHE 3D (128x128x16)",
+      "mean_ms": 3.236099984496832,
+      "std_ms": 0.20066638313042756,
+      "p50_ms": 3.1512000132352114,
+      "p95_ms": 3.544160001911223,
+      "min_ms": 3.071799990721047,
+      "max_ms": 3.626000019721687,
+      "iterations": 5
+    },
+    "full_pipeline_3d": {
+      "name": "Full Pipeline 3D (128x128x16)",
+      "mean_ms": 18.950199987739325,
+      "std_ms": 1.149672356405071,
+      "p50_ms": 19.071800052188337,
+      "p95_ms": 20.431099948473275,
+      "min_ms": 17.501699971035123,
+      "max_ms": 20.615499932318926,
+      "iterations": 5
+    }
+  },
+  "python_tracemalloc_peak_bytes": 11832179,
+  "native_memory_included": false,
+  "concurrency": 4,
+  "http_requests": 16,
+  "http_p50_ms": 34.20485003152862,
+  "http_p95_ms": 54.43592500523664,
+  "http_max_ms": 54.81669993605465,
+  "malformed_then_valid_recovery": true,
+  "health": {
+    "status": "ok",
+    "service": "MRI Analysis API",
+    "version": "0.1.0",
+    "environment": "development",
+    "components": {
+      "database": {
+        "status": "ok",
+        "detail": null
+      }
+    }
+  },
+  "limitations": "Synthetic inputs on this development host; not a production capacity or clinical benchmark."
+}

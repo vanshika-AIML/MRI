@@ -1,0 +1,107 @@
+{
+  "date": "2026-10-16",
+  "scope": "local engineering verification; not clinical or production acceptance",
+  "compose": {
+    "profile": "full-stack",
+    "model_overlay": true,
+    "model_run": "msd-flair-pilot",
+    "model_mount_read_only": true,
+    "services_healthy": [
+      "db",
+      "backend",
+      "frontend-web"
+    ],
+    "api_health": "ok",
+    "database_health": "ok",
+    "api_readiness": true,
+    "secret": "generated for local validation and held in the running container environment; not committed or recorded"
+  },
+  "api_integration": {
+    "authentication": "registration and login succeeded",
+    "analysis_method": "research_flair_segmentation",
+    "input": "generated synthetic FLAIR NIfTI, 24x20x5",
+    "predicted_voxels": 169,
+    "report_persisted_and_owner_retrieval_verified": true,
+    "report_survived_backend_restart": true,
+    "report_survived_postgresql_container_restart": true,
+    "readiness_recovered_after_restarts": true
+  },
+  "candidate_controls": {
+    "valid_immutable_candidate_copy_preflighted": true,
+    "candidate_copy_promoted": true,
+    "rollback_to_original_pilot_verified": true,
+    "incomplete_candidate_rejected_before_activation": true,
+    "active_container_and_model_mount_unchanged_on_preflight_failure": true,
+    "candidate_was_copy_of_active_checkpoint": true,
+    "model_quality_improvement_claimed": false
+  },
+  "clients": {
+    "chrome_browser": "registered, authenticated, selected research mode, uploaded synthetic NIfTI, completed inference, displayed result and mask download",
+    "android_emulator": "Android 17/API 37; 2 integration tests passed for baseline and authenticated research workflows with report retrieval",
+    "ios": "not supported or verified in this checkout",
+    "physical_android": "not tested"
+  },
+  "web_launch_checks": {
+    "nginx_config_test": true,
+    "security_headers": [
+      "Content-Security-Policy",
+      "Permissions-Policy",
+      "X-Content-Type-Options",
+      "Referrer-Policy",
+      "X-Frame-Options"
+    ],
+    "unknown_path_returns_custom_404": true,
+    "manifest_icon_and_robots_return_200": true,
+    "crawler_policy": "noindex/nofollow plus robots disallow all; this is an application, not public content",
+    "https_hsts": "not configured on the local HTTP stack; production TLS proxy must provide HSTS"
+  },
+  "post_rework_verification": {
+    "date": "2026-10-16",
+    "scope": "updated model interpretation, auth/profession, and client workflows; engineering evidence only",
+    "compose": {
+      "services_healthy": [
+        "db",
+        "backend",
+        "frontend-web"
+      ],
+      "api_readiness_http": 200,
+      "web_http": 200,
+      "alembic_revision": "005_self_declared_profession",
+      "profession_column_present": true,
+      "existing_application_database_volume_recreated": false
+    },
+    "regression_suites": {
+      "analysis_api": "17 passed",
+      "auth_validation_and_access": "20 passed, 10 deselected",
+      "checkpoint_inference_and_training_contracts": "7 passed",
+      "connected_auth_inference_report_owner_isolation": "1 passed on a unique disposable DB; DB removed",
+      "web": "8 passed; lint and production build passed",
+      "flutter": "11 passed; analyze passed",
+      "android_emulator": "2 integration tests passed against a temporary model-enabled API and disposable DB; both removed"
+    },
+    "browser_workflow": {
+      "authentication_required": true,
+      "self_declared_profession": "researcher",
+      "authorization_role": "viewer",
+      "research_method": "research_flair_segmentation",
+      "sequence_confirmation": "user-declared, not independently verified",
+      "synthetic_predicted_voxels": 0,
+      "synthetic_result_status": "not_assessed",
+      "report_row_persisted_in_isolated_database": true,
+      "json_download_toast": true,
+      "logout_returns_to_auth_gate": true,
+      "temporary_api_database_and_upload_fixture_removed": true
+    },
+    "model_artifacts_changed": false,
+    "diagnostic_performance_improvement_claimed": false,
+    "packages_installed": false,
+    "committed_or_released": false
+  },
+  "remaining_gates": [
+    "Configure a durable production secret and actual production API origin/CSP",
+    "Production TLS, network restrictions, monitoring/alerting and resource limits",
+    "Cold-start, concurrent load, and production capacity testing",
+    "Clinical validation, safety/regulatory review, and independent-site evaluation",
+    "iOS and physical-device acceptance"
+  ]
+}

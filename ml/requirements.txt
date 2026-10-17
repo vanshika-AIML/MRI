@@ -1,0 +1,13 @@
+# Medical Imaging & Machine Learning Dependencies
+pydicom>=2.4.0
+nibabel>=5.1.0
+SimpleITK>=2.3.0
+numpy>=1.25.0
+scipy>=1.10.0
+Pillow>=10.0.0
+opencv-python>=4.8.0; sys_platform == "win32"
+opencv-python-headless>=4.8.0; sys_platform != "win32"
+torch>=2.0.0
+monai>=1.3.0
+pydantic>=2.0.0
+pytest>=7.4.0

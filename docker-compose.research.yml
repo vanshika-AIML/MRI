@@ -1,0 +1,12 @@
+services:
+  backend:
+    build:
+      args:
+        INSTALL_RESEARCH_MODEL: "true"
+    environment:
+      MRI_TUMOR_MODEL_RUN_DIR: /opt/mri-model
+    volumes:
+      - type: bind
+        source: ${MRI_TUMOR_MODEL_HOST_RUN_DIR:?Set MRI_TUMOR_MODEL_HOST_RUN_DIR to a verified run directory}
+        target: /opt/mri-model
+        read_only: true

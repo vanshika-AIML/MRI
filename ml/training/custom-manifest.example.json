@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "source": "Your authorized local dataset; record its provenance here",
+  "license": "Record permitted use and consent basis",
+  "modality": "FLAIR",
+  "modality_index": 0,
+  "target": "whole_tumor_label_gt_0",
+  "cases": [
+    {"patient_id": "patient-001", "image": "images/patient-001.nii.gz", "label": "labels/patient-001.nii.gz", "split": "train"},
+    {"patient_id": "patient-002", "image": "images/patient-002.nii.gz", "label": "labels/patient-002.nii.gz", "split": "val"},
+    {"patient_id": "patient-003", "image": "images/patient-003.nii.gz", "label": "labels/patient-003.nii.gz", "split": "test"}
+  ]
+}

@@ -1,0 +1,157 @@
+{
+  "seed": 42,
+  "dataset": "synthetic Gaussian fields with rectangular intensity inserts",
+  "clinical_validation": false,
+  "trained_weights": null,
+  "cases": [
+    {
+      "case": 0,
+      "positive": true,
+      "sha256": "46d632a8b63940bb3eb6e06b5e5942f6bcd9ac7e484b728ae1f59738c72295a0",
+      "flagged": true,
+      "bbox_dice": 1.0
+    },
+    {
+      "case": 1,
+      "positive": false,
+      "sha256": "98aefc7e19cb087217ba891fcec603759fcb47e9676c7efa74cdb36c6b74cfc2",
+      "flagged": false,
+      "bbox_dice": 1.0
+    },
+    {
+      "case": 2,
+      "positive": true,
+      "sha256": "8ce819a64653ad6c1b207eb98813ae877d447774420a303abc06d38ab1672cd4",
+      "flagged": true,
+      "bbox_dice": 1.0
+    },
+    {
+      "case": 3,
+      "positive": false,
+      "sha256": "9b8cf06bd331c391e8f26c236b6632b18d8874cb3fff478b58640f5a57f18607",
+      "flagged": false,
+      "bbox_dice": 1.0
+    },
+    {
+      "case": 4,
+      "positive": true,
+      "sha256": "a76cbc5118ada63d384b9186edb7821341cde54aaee0e230638bbea503ed00dc",
+      "flagged": true,
+      "bbox_dice": 1.0
+    },
+    {
+      "case": 5,
+      "positive": false,
+      "sha256": "15bd67429dbbc4de98281f5db1a3bd1fb8cd34f5da2fa424b7c64e18616a24f6",
+      "flagged": false,
+      "bbox_dice": 1.0
+    },
+    {
+      "case": 6,
+      "positive": true,
+      "sha256": "5aab71a3f341d2e8e30497fd9daef00c5ed4b8585ce8285572b5c082fb53dfd9",
+      "flagged": true,
+      "bbox_dice": 1.0
+    },
+    {
+      "case": 7,
+      "positive": false,
+      "sha256": "8087d9b1c0667186a5c37c042e194741e031a9c44f1a970395a3b4c08d7c3295",
+      "flagged": false,
+      "bbox_dice": 1.0
+    },
+    {
+      "case": 8,
+      "positive": true,
+      "sha256": "c4e214109602ae6785f8dbd01453d08a0d4c20ce278cb72b1e03b5a77e31079c",
+      "flagged": true,
+      "bbox_dice": 1.0
+    },
+    {
+      "case": 9,
+      "positive": false,
+      "sha256": "ee319a47b1e39b95113ae6a13d0b52b0a738209815126688881b49c176f87d9b",
+      "flagged": false,
+      "bbox_dice": 1.0
+    },
+    {
+      "case": 10,
+      "positive": true,
+      "sha256": "a538ac65bb6a9dbbe4ae8572add5fb4f917a43ce4d7a76d57f516e571a9c5c7c",
+      "flagged": true,
+      "bbox_dice": 1.0
+    },
+    {
+      "case": 11,
+      "positive": false,
+      "sha256": "edcc5c241db9c55bbd681f109500e451a3a57d21939e8ca9f73df36d5b9d23cf",
+      "flagged": false,
+      "bbox_dice": 1.0
+    },
+    {
+      "case": 12,
+      "positive": true,
+      "sha256": "d0bef66968af74cb6537ad14d0325ca947a20e0ab9940c82b7497c30c207989b",
+      "flagged": true,
+      "bbox_dice": 1.0
+    },
+    {
+      "case": 13,
+      "positive": false,
+      "sha256": "1568a53527784761645b9ee15522fd9fe5fe3c2acb64083c91aa54746c6f29c7",
+      "flagged": false,
+      "bbox_dice": 1.0
+    },
+    {
+      "case": 14,
+      "positive": true,
+      "sha256": "f2a6f33f283e277f0f62ddb70b9e3404d7b734c60082dd9317c762191ad20c32",
+      "flagged": true,
+      "bbox_dice": 1.0
+    },
+    {
+      "case": 15,
+      "positive": false,
+      "sha256": "6cf7bab306221ffe3999bdd5c5be4a696ebfa69af9b0175ce07b5729d1475a13",
+      "flagged": false,
+      "bbox_dice": 1.0
+    },
+    {
+      "case": 16,
+      "positive": true,
+      "sha256": "b9f8e699041f4c045977f1896c30505bf4532d3f94615b5e89a21078e98ad4fb",
+      "flagged": true,
+      "bbox_dice": 1.0
+    },
+    {
+      "case": 17,
+      "positive": false,
+      "sha256": "0adf6180bfff819cbeac7e9364b476a0c812bd5a2a3a1b75b2d8eaf4038f408b",
+      "flagged": false,
+      "bbox_dice": 1.0
+    },
+    {
+      "case": 18,
+      "positive": true,
+      "sha256": "6517b45270fd2df1e1b0a18771675de5589ce324df1ddbf941b794bb0bdd9069",
+      "flagged": true,
+      "bbox_dice": 1.0
+    },
+    {
+      "case": 19,
+      "positive": false,
+      "sha256": "1f73cbbf32f6ae6550c8ccc87a168912df627bf6681810bbaed5db2532881948",
+      "flagged": false,
+      "bbox_dice": 1.0
+    }
+  ],
+  "sensitivity_synthetic": 1.0,
+  "specificity_synthetic": 1.0,
+  "mean_bbox_dice": 1.0,
+  "limitations": [
+    "Bounding-box overlap is not lesion segmentation accuracy.",
+    "No patient data, scanner diversity, labeled clinical cohort, or trained checkpoint is present.",
+    "Default CLAHE/normalization are covered by pipeline tests, not this detector-isolation benchmark.",
+    "3D processing is slice-wise along the last axis; no anatomical registration or lesion classification."
+  ]
+}
