@@ -1,149 +1,305 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import type { DetectedRegion, InputMetadata, SegmentationPrediction } from '../types/analysis';
 
-interface ImageViewerProps {
+interface Props {
   file: File | null;
   metadata: InputMetadata;
   detectedRegions: DetectedRegion[];
   prediction?: SegmentationPrediction | null;
 }
 
-export const ImageViewer: React.FC<ImageViewerProps> = ({ file, metadata, detectedRegions, prediction }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const isRenderableImage = !!file && /\.(png|jpe?g|bmp)$/i.test(file.name);
+type Mode = 'original' | 'enhanced' | 'findings' | 'comparison';
+
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 3;
+
+export function ImageViewer({ file, metadata, detectedRegions, prediction }: Props) {
+  const [mode, setMode] = useState<Mode>(prediction ? 'findings' : 'original');
+  const [zoom, setZoom] = useState(1);
+  const [contrast, setContrast] = useState(1);
+  const [panEnabled, setPanEnabled] = useState(false);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [message, setMessage] = useState<string | null>(null);
+  const viewerRoot = useRef<HTMLElement>(null);
+  const stage = useRef<HTMLDivElement>(null);
+  const originalCanvas = useRef<HTMLCanvasElement>(null);
+  const findingsCanvas = useRef<HTMLCanvasElement>(null);
+  const comparisonOriginalCanvas = useRef<HTMLCanvasElement>(null);
+  const comparisonFindingsCanvas = useRef<HTMLCanvasElement>(null);
+  const dragOrigin = useRef<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null);
+  const imageAvailable = !!file && /\.(png|jpe?g|bmp)$/i.test(file.name);
 
   useEffect(() => {
-    if (prediction) return;
-    if (!isRenderableImage || !file || !canvasRef.current) return;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    const imageUrl = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-
-      // Draw original scan image
-      ctx.drawImage(img, 0, 0);
-
-      // Draw bounding box overlays for detected anomaly regions
-      detectedRegions.forEach((region, index) => {
-        const [yMin, xMin, yMax, xMax] = region.bbox;
-        const width = xMax - xMin;
-        const height = yMax - yMin;
-
-        // Choose color based on severity
-        const color =
-          region.severity === 'high'
-            ? '#f43f5e'
-            : region.severity === 'medium' || region.severity === 'moderate'
-            ? '#f59e0b'
-            : '#38bdf8';
-
-        // Draw bounding box
-        ctx.strokeStyle = color;
-        ctx.lineWidth = Math.max(2, Math.round(canvas.width / 200));
-        ctx.strokeRect(xMin, yMin, width, height);
-
-        // Fill subtle background
-        ctx.fillStyle = color + '22';
-        ctx.fillRect(xMin, yMin, width, height);
-
-        // Draw label tag above box
-        ctx.fillStyle = color;
-        ctx.font = `bold ${Math.max(12, Math.round(canvas.width / 40))}px sans-serif`;
-        const labelText = `#${index + 1} (${(region.confidence * 100).toFixed(0)}%)`;
-        ctx.fillText(labelText, xMin, Math.max(14, yMin - 4));
-      });
+    if (!file || !imageAvailable) return;
+    let active = true;
+    const url = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => {
+      if (!active) return;
+      const canvases = [
+        { canvas: originalCanvas.current, withFindings: false },
+        { canvas: findingsCanvas.current, withFindings: true },
+        { canvas: comparisonOriginalCanvas.current, withFindings: false },
+        { canvas: comparisonFindingsCanvas.current, withFindings: true },
+      ];
+      for (const { canvas, withFindings } of canvases) {
+        if (!canvas) continue;
+        canvas.width = image.naturalWidth;
+        canvas.height = image.naturalHeight;
+        const context = canvas.getContext('2d');
+        if (!context) continue;
+        context.drawImage(image, 0, 0);
+        if (!withFindings) continue;
+        context.strokeStyle = '#f5b544';
+        context.lineWidth = Math.max(2, image.naturalWidth / 180);
+        for (const region of detectedRegions) {
+          const [top, left, bottom, right] = region.bbox;
+          if (![top, left, bottom, right].every(Number.isFinite)) continue;
+          context.strokeRect(left, top, right - left, bottom - top);
+        }
+      }
     };
-    img.src = imageUrl;
-    return () => { img.onload = null; URL.revokeObjectURL(imageUrl); };
-  }, [file, isRenderableImage, detectedRegions, prediction]);
+    image.src = url;
+    return () => {
+      active = false;
+      image.onload = null;
+      URL.revokeObjectURL(url);
+    };
+  }, [file, imageAvailable, detectedRegions, mode]);
 
-  if (prediction) {
+  const transform = `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`;
+  const displayFilter = `contrast(${contrast})`;
+
+  const resetView = () => {
+    setZoom(1);
+    setContrast(1);
+    setOffset({ x: 0, y: 0 });
+    setPanEnabled(false);
+    setMessage(null);
+  };
+
+  const adjustZoom = (delta: number) => {
+    setZoom((current) => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.round((current + delta) * 100) / 100)));
+  };
+
+  const startPan = (event: PointerEvent<HTMLDivElement>) => {
+    if (!panEnabled) return;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    dragOrigin.current = {
+      x: event.clientX,
+      y: event.clientY,
+      offsetX: offset.x,
+      offsetY: offset.y,
+    };
+  };
+
+  const movePan = (event: PointerEvent<HTMLDivElement>) => {
+    if (!dragOrigin.current || !panEnabled) return;
+    setOffset({
+      x: dragOrigin.current.offsetX + event.clientX - dragOrigin.current.x,
+      y: dragOrigin.current.offsetY + event.clientY - dragOrigin.current.y,
+    });
+  };
+
+  const stopPan = () => {
+    dragOrigin.current = null;
+  };
+
+  const imageStyle = { transform, filter: displayFilter };
+  const unavailable = (details: string) => (
+    <div className="image-unavailable">
+      <strong>Preview unavailable</strong>
+      <p>{details}</p>
+    </div>
+  );
+
+  const canvasView = (withFindings: boolean, comparison = false) => {
+    if (!imageAvailable) {
+      return unavailable('This source format cannot be safely rendered in the browser. Use a dedicated DICOM or NIfTI viewer to inspect the original file.');
+    }
+    const canvas = comparison
+      ? withFindings ? comparisonFindingsCanvas : comparisonOriginalCanvas
+      : withFindings ? findingsCanvas : originalCanvas;
     return (
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-4">
-        <div>
-          <h4 className="font-semibold text-white text-sm">Research segmentation preview</h4>
-          <p className="text-xs text-amber-300 mt-1">
-            Axial slice {prediction.preview_slice_index} of {prediction.mask_dimensions[2]}; red overlay shows the predicted binary mask.
-          </p>
-        </div>
-        <img
-          src={`data:${prediction.overlay_format};base64,${prediction.overlay_png_base64}`}
-          alt={`Research segmentation overlay at axial slice ${prediction.preview_slice_index}`}
-          loading="lazy"
-          decoding="async"
-          className="max-h-96 max-w-full mx-auto rounded-lg"
+      <div
+        className={`scan-stage ${panEnabled ? 'panning' : ''}`}
+        ref={comparison ? undefined : stage}
+        onPointerDown={comparison ? undefined : startPan}
+        onPointerMove={comparison ? undefined : movePan}
+        onPointerUp={comparison ? undefined : stopPan}
+        onPointerCancel={comparison ? undefined : stopPan}
+        onLostPointerCapture={comparison ? undefined : stopPan}
+        role="group"
+        aria-label={panEnabled ? 'Scan image; drag to pan' : 'Scan image preview'}
+      >
+        <canvas
+          ref={canvas}
+          style={imageStyle}
+          aria-label={withFindings ? 'Scan with heuristic candidate boxes' : 'Original selected scan'}
         />
-        <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-300">
-          <span>{prediction.predicted_voxels.toLocaleString()} predicted voxels · spacing {prediction.voxel_spacing_mm.map((v) => v.toFixed(2)).join(' × ')} mm</span>
+      </div>
+    );
+  };
+
+  const renderFindings = () => {
+    if (prediction) {
+      return (
+        <>
+          <div
+            className={`scan-stage ${panEnabled ? 'panning' : ''}`}
+            ref={stage}
+            onPointerDown={startPan}
+            onPointerMove={movePan}
+            onPointerUp={stopPan}
+            onPointerCancel={stopPan}
+            onLostPointerCapture={stopPan}
+            role="group"
+            aria-label={panEnabled ? 'Segmentation overlay; drag to pan' : 'Segmentation overlay'}
+          >
+            <img
+              style={imageStyle}
+              src={`data:${prediction.overlay_format};base64,${prediction.overlay_png_base64}`}
+              alt={`Research binary mask overlay, preview slice ${prediction.preview_slice_index + 1}`}
+            />
+          </div>
+          <p>
+            Preview slice {prediction.preview_slice_index + 1} · {prediction.predicted_voxels.toLocaleString()} predicted voxels.
+            The overlay is an experimental binary mask, not a tumor diagnosis.
+          </p>
           <a
+            className="download-mask"
             href={`data:${prediction.mask_format};base64,${prediction.mask_nifti_gz_base64}`}
             download={`mri-${prediction.mask_sha256.slice(0, 12)}-mask.nii.gz`}
-            className="rounded-md bg-cyan-700 px-3 py-2 font-semibold text-white hover:bg-cyan-600"
           >
             Download NIfTI mask
           </a>
-        </div>
-      </div>
-    );
-  }
+        </>
+      );
+    }
+    return canvasView(true);
+  };
 
-  if (!isRenderableImage) {
-    return (
-      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-6 text-center space-y-3">
-        <div className="w-12 h-12 mx-auto rounded-xl bg-slate-800 flex items-center justify-center text-cyan-400 font-bold text-xs uppercase">
-          {metadata.source_format}
-        </div>
-        <div>
-          <h4 className="font-semibold text-white text-sm">Volumetric / DICOM Data Source</h4>
-          <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
-            Uploaded format ({metadata.source_format.toUpperCase()}, shape: {metadata.dimensions.join('×')}) processed successfully. Detected region coordinates are detailed below.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const renderFindingPanel = () => (
+    <aside className="finding-panel" aria-label="Analysis findings">
+      <h3>AI findings</h3>
+      {prediction ? (
+        <>
+          <p>Research segmentation output · {prediction.target.replaceAll('_', ' ')}. Model output does not establish that an abnormality is present.</p>
+          <div className="finding-panel-item">
+            <strong>Binary mask</strong>
+            <span>{prediction.predicted_voxels.toLocaleString()} voxels</span>
+            <small>FLAIR was declared by the uploader and was not verified from image pixels.</small>
+          </div>
+        </>
+      ) : detectedRegions.length ? (
+        <>
+          <p>Heuristic candidate regions returned by the analysis pipeline. These scores are not medical probabilities.</p>
+          <div className="finding-panel-list">
+            {detectedRegions.map((region) => (
+              <div className="finding-panel-item" key={region.region_id}>
+                <strong>Candidate region</strong>
+                <span>{region.severity} · heuristic score {(region.confidence * 100).toFixed(0)}%</span>
+                <small>
+                  {region.slice_index == null ? '2D image' : `Slice ${region.slice_index + 1}`}
+                  {' · '}box [{region.bbox.join(', ')}]
+                </small>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
+        <p>No candidate regions were returned. This does not establish that the scan is normal or exclude disease.</p>
+      )}
+    </aside>
+  );
+
+  const toggleFullscreen = async () => {
+    setMessage(null);
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await viewerRoot.current?.requestFullscreen();
+      }
+    } catch {
+      setMessage('Fullscreen is unavailable in this browser context.');
+    }
+  };
 
   return (
-    <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <h4 className="font-semibold text-white text-sm flex items-center space-x-2">
-          <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-          </svg>
-          <span>Visual Scan View with Bounding Box Overlay</span>
-        </h4>
-        <span className="text-xs text-slate-400 font-mono">
-          {metadata.dimensions.join('×')} px
-        </span>
-      </div>
-
-      <div className="relative flex justify-center bg-slate-950 rounded-xl overflow-hidden p-2 border border-slate-800">
-        <canvas ref={canvasRef} className="max-h-96 w-auto object-contain rounded-lg shadow-2xl" />
-      </div>
-
-      {detectedRegions.length > 0 && (
-        <div className="flex flex-wrap gap-2 text-xs">
-          {detectedRegions.map((r, i) => (
-            <span
-              key={r.region_id || i}
-              className={`px-2.5 py-1 rounded-md font-mono border ${
-                r.severity === 'high'
-                  ? 'bg-rose-500/10 text-rose-300 border-rose-500/30'
-                  : r.severity === 'medium' || r.severity === 'moderate'
-                  ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
-                  : 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30'
-              }`}
-            >
-              Region #{i + 1}: BBox [{r.bbox.join(', ')}] • Conf: {(r.confidence * 100).toFixed(0)}%
-            </span>
+    <section ref={viewerRoot} className="clinical-viewer viewer-fullscreen" aria-label="MRI image viewer">
+      <div className="viewer-toolbar">
+        <div className="viewer-tabs" role="tablist" aria-label="Scan views">
+          {([
+            ['original', 'Original'],
+            ['enhanced', 'Enhanced'],
+            ['findings', 'AI Findings'],
+            ['comparison', 'Comparison'],
+          ] as const).map(([value, label]) => (
+            <button key={value} type="button" role="tab" aria-selected={mode === value} onClick={() => { setMode(value); setMessage(null); }}>
+              {label}
+            </button>
           ))}
         </div>
-      )}
-    </div>
+        <div className="viewer-toolbar-actions" aria-label="Image tools">
+          <button type="button" onClick={() => adjustZoom(-0.25)} aria-label="Zoom out" title="Zoom out">−</button>
+          <button type="button" onClick={() => adjustZoom(0.25)} aria-label="Zoom in" title="Zoom in">＋</button>
+          <button type="button" aria-pressed={panEnabled} onClick={() => { setPanEnabled((active) => !active); setMessage(null); }} title="Drag the image to pan">Pan</button>
+          <button type="button" onClick={() => setMessage('Calibrated DICOM window/level is not available; this control does not change the source pixels.')} title="Calibrated window/level is unavailable">W/L</button>
+          <button type="button" onClick={() => setMessage('Measurement tools are not available in this viewer.')} title="Measurement is unavailable">Measure</button>
+          <button type="button" onClick={() => void toggleFullscreen()} aria-label="Toggle fullscreen">⛶</button>
+          <button type="button" onClick={resetView}>Reset</button>
+        </div>
+      </div>
+
+      <div className="viewer-tools">
+        <span>{metadata.dimensions.join(' × ')} · {metadata.source_format.toUpperCase()} · {metadata.modality}</span>
+        <label>
+          Zoom
+          <input
+            type="range"
+            min={MIN_ZOOM}
+            max={MAX_ZOOM}
+            step="0.1"
+            value={zoom}
+            onChange={(event) => setZoom(Number(event.target.value))}
+            aria-label="Zoom"
+          />
+          {Math.round(zoom * 100)}%
+        </label>
+        <label title="Display-only contrast; not calibrated DICOM window/level">
+          Display contrast
+          <input
+            type="range"
+            min="0.7"
+            max="1.6"
+            step="0.05"
+            value={contrast}
+            onChange={(event) => setContrast(Number(event.target.value))}
+            aria-label="Display contrast"
+          />
+        </label>
+      </div>
+
+      {message && <p className="viewer-message" role="status" aria-label="Viewer tool status">{message}</p>}
+
+      {mode === 'original' && canvasView(false)}
+      {mode === 'enhanced' && unavailable('The API returns processing metrics but does not return an enhanced image. No transformed image is substituted for the original.')}
+      {mode === 'findings' && renderFindings()}
+      {mode === 'comparison' && imageAvailable && !prediction ? (
+        <div className="comparison-grid">
+          <div><strong>Original source</strong>{canvasView(false, true)}</div>
+          <div><strong>Heuristic candidate boxes</strong>{canvasView(true, true)}</div>
+        </div>
+      ) : mode === 'comparison' ? unavailable('A side-by-side comparison is unavailable for this source format or model output.') : null}
+
+      {renderFindingPanel()}
+
+      <div className="viewer-metadata">
+        <span>File: {metadata.filename}</span>
+        <span>Series navigation: unavailable for this single-file analysis</span>
+        {prediction && <span>Preview: axial slice {prediction.preview_slice_index + 1}</span>}
+      </div>
+    </section>
   );
-};
+}

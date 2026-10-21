@@ -11,7 +11,7 @@ import {
   logoutUser,
   registerUser,
   getCurrentUser,
-  clearTokens,
+  expireSession,
   isLoggedIn,
 } from '../api/auth';
 import type { UserLoginRequest, UserRegisterRequest } from '../types/auth';
@@ -31,17 +31,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Restore session from stored token on mount
   useEffect(() => {
+    const onSessionExpired = () => {
+      setState({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: 'Your session has expired. Please sign in again.',
+      });
+    };
+    window.addEventListener('mri:session-expired', onSessionExpired);
     if (!isLoggedIn()) {
-      return;
+      return () => window.removeEventListener('mri:session-expired', onSessionExpired);
     }
     getCurrentUser()
       .then((user) =>
         setState({ user, isAuthenticated: true, isLoading: false, error: null })
       )
       .catch(() => {
-        clearTokens();
-        setState({ user: null, isAuthenticated: false, isLoading: false, error: null });
+        expireSession();
       });
+    return () => window.removeEventListener('mri:session-expired', onSessionExpired);
   }, []);
 
   const login = useCallback(async (data: UserLoginRequest) => {
@@ -82,9 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const user = await getCurrentUser();
       setState((s) => ({ ...s, user }));
     } catch {
-      // Token may have expired — clear silently
-      clearTokens();
-      setState({ user: null, isAuthenticated: false, isLoading: false, error: null });
+      expireSession();
     }
   }, []);
 
@@ -94,4 +101,3 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     </AuthContext.Provider>
   );
 }
-

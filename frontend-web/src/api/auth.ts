@@ -34,6 +34,13 @@ export function clearTokens(): void {
   sessionStorage.removeItem(REFRESH_KEY);
 }
 
+export function expireSession(): void {
+  clearTokens();
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('mri:session-expired'));
+  }
+}
+
 export function getAccessToken(): string | null {
   return sessionStorage.getItem(TOKEN_KEY);
 }
@@ -70,9 +77,18 @@ async function apiFetch<T>(
     signal: AbortSignal.timeout(20000),
   });
 
-  if (response.status === 401 && withAuth && retry && getRefreshToken()) {
-    await refreshTokens();
-    return apiFetch<T>(path, options, withAuth, false);
+  if (response.status === 401 && withAuth) {
+    if (retry && getRefreshToken()) {
+      try {
+        await refreshTokens();
+        return apiFetch<T>(path, options, withAuth, false);
+      } catch (error) {
+        expireSession();
+        throw error;
+      }
+    }
+    expireSession();
+    throw new Error('Your session has expired. Please sign in again.');
   }
 
   if (!response.ok) {
@@ -87,6 +103,11 @@ async function apiFetch<T>(
   }
 
   return response.json() as Promise<T>;
+}
+
+/** Shared authenticated JSON requests, including the existing single-flight refresh. */
+export function authenticatedJson<T>(path: string, options: RequestInit = {}): Promise<T> {
+  return apiFetch<T>(path, options, true);
 }
 
 // ---------------------------------------------------------------------------

@@ -45,6 +45,11 @@ def test_authenticated_analysis_report_and_annotation_workflow(db_session, monke
             path = '/api/v1/analysis/' + report['analysis_id']
             assert client.get(path + '/report', headers=headers).json() == report
             assert client.get(path + '/report').status_code == 401
+            reports = client.get('/api/v1/analysis/reports', headers=headers)
+            assert reports.status_code == 200
+            assert any(item['analysis_id'] == report['analysis_id'] for item in reports.json()), reports.json()
+            assert 'prediction' not in reports.json()[0]
+            assert client.get('/api/v1/analysis/reports').status_code == 401
 
             model_report_path = None
             run_dir = Path(__file__).resolve().parents[2] / "ml" / "runs" / "msd-flair-pilot"
@@ -87,6 +92,7 @@ def test_authenticated_analysis_report_and_annotation_workflow(db_session, monke
             other_tokens = client.post('/api/v1/auth/login', json=other).json()
             other_headers = {'Authorization': 'Bearer ' + other_tokens['access_token']}
             assert client.get(path + '/report', headers=other_headers).status_code == 404
+            assert all(item['analysis_id'] != report['analysis_id'] for item in client.get('/api/v1/analysis/reports', headers=other_headers).json())
             assert client.get(path + '/annotations', headers=other_headers).status_code == 404
             if model_report_path is not None:
                 assert client.get(model_report_path + '/report', headers=other_headers).status_code == 404

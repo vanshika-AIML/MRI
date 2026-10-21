@@ -17,6 +17,7 @@ from app.services.reports import require_report
 from app.api.dependencies import get_current_user
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 
 from app.api.dependencies import get_db_optional, get_current_user_optional, verify_auth_header
 from app.schemas.analysis import (
@@ -35,6 +36,40 @@ from app.services.tumor_segmentation import (
 router = APIRouter(tags=["Analysis"])
 logger = logging.getLogger(__name__)
 _RESEARCH_INFERENCE_GATE = asyncio.Semaphore(1)
+
+
+@router.get("/analysis/reports")
+def list_owned_reports(
+    current_user: dict = Depends(get_current_user),
+    db: Optional[Session] = Depends(get_db_optional),
+):
+    """Recent reports owned by this account, without embedded images or masks."""
+    if db is None:
+        raise HTTPException(503, "Database unavailable.")
+    try:
+        owner_id = uuid.UUID(current_user["sub"])
+    except (KeyError, ValueError):
+        raise HTTPException(401, "Valid account required.")
+    rows = db.execute(
+        select(AnalysisReport)
+        .where(AnalysisReport.owner_id == owner_id)
+        .order_by(AnalysisReport.created_at.desc())
+        .limit(50)
+    ).scalars().all()
+    return [
+        {
+            "analysis_id": row.result.get("analysis_id", str(row.id)),
+            "timestamp": row.result.get("timestamp") or row.created_at.isoformat(),
+            "filename": row.result.get("input_metadata", {}).get("filename", "Scan"),
+            "patient_id": row.result.get("input_metadata", {}).get("patient_id"),
+            "model_name": row.result.get("model_name", "Unknown"),
+            "is_baseline": bool(row.result.get("is_baseline", True)),
+            "success": bool(row.result.get("success", False)),
+            "status": row.result.get("status", "unknown"),
+            "has_prediction": row.result.get("prediction") is not None,
+        }
+        for row in rows
+    ]
 
 
 async def _run_research_segmentation(

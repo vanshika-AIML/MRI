@@ -1,4 +1,25 @@
 import type { AnalysisOptions, AnalysisResponse, ApiError } from '../types/analysis';
+import { authenticatedJson, expireSession, refreshTokens } from './auth';
+
+export interface ReportSummary {
+  analysis_id: string;
+  timestamp: string;
+  filename: string;
+  patient_id?: string | null;
+  model_name: string;
+  is_baseline: boolean;
+  success: boolean;
+  status: string;
+  has_prediction: boolean;
+}
+
+export function listOwnedReports(): Promise<ReportSummary[]> {
+  return authenticatedJson<ReportSummary[]>('/api/v1/analysis/reports');
+}
+
+export function getOwnedReport(id: string): Promise<AnalysisResponse> {
+  return authenticatedJson<AnalysisResponse>(`/api/v1/analysis/${encodeURIComponent(id)}/report`);
+}
 
 /**
  * Configure API Base URL from environment variables, fallback to default ports.
@@ -61,15 +82,38 @@ export async function runMriAnalysis(
     requestHeaders['Authorization'] = `Bearer ${token}`;
   }
 
-  try {
-    response = await fetch(`${API_BASE_URL}/api/v1/analysis`, {
+  const send = (accessToken: string | null) => fetch(`${API_BASE_URL}/api/v1/analysis`, {
       method: 'POST',
-      headers: requestHeaders,
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : requestHeaders,
       body: formData,
       signal: AbortSignal.timeout(120000),
     });
+  try {
+    response = await send(token);
   } catch {
     throw new Error('Unable to connect to the configured backend API. Check the server address and network connection.');
+  }
+
+  if (response.status === 401) {
+    let accessToken: string;
+    try {
+      if (!sessionStorage.getItem('mri_refresh_token')) {
+        throw new Error('No refresh token available.');
+      }
+      accessToken = (await refreshTokens()).access_token;
+    } catch {
+      expireSession();
+      throw new Error('Your session has expired. Please sign in again.');
+    }
+    try {
+      response = await send(accessToken);
+    } catch {
+      throw new Error('Unable to connect to the configured backend API. Check the server address and network connection.');
+    }
+    if (response.status === 401) {
+      expireSession();
+      throw new Error('Your session has expired. Please sign in again.');
+    }
   }
 
   if (!response.ok) {
@@ -122,26 +166,7 @@ export interface AnnotationItem {
  * Fetch clinical annotations for an analysis run.
  */
 export async function getAnalysisAnnotations(analysisId: string): Promise<AnnotationItem[]> {
-  const token = typeof window !== 'undefined' ? sessionStorage.getItem('mri_access_token') : null;
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  const res = await fetch(`${API_BASE_URL}/api/v1/analysis/${analysisId}/annotations`, {
-    method: 'GET',
-    headers,
-  });
-
-  if (!res.ok) {
-    if (res.status === 503) return [];
-    if (res.status === 401) return [];
-    throw new Error(`Failed to load annotations (${res.status})`);
-  }
-
-  return (await res.json()) as AnnotationItem[];
+  return authenticatedJson<AnnotationItem[]>(`/api/v1/analysis/${encodeURIComponent(analysisId)}/annotations`);
 }
 
 /**
@@ -152,33 +177,11 @@ export async function createAnalysisAnnotation(
   annotationText: string,
   fieldName?: string
 ): Promise<AnnotationItem> {
-  const token = typeof window !== 'undefined' ? sessionStorage.getItem('mri_access_token') : null;
-  if (!token) {
-    throw new Error('Authentication required to save clinical annotations.');
-  }
-
-  const res = await fetch(`${API_BASE_URL}/api/v1/analysis/${analysisId}/annotations`, {
+  return authenticatedJson<AnnotationItem>(`/api/v1/analysis/${encodeURIComponent(analysisId)}/annotations`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
     body: JSON.stringify({
       annotation_text: annotationText,
       field_name: fieldName || 'clinical_impression',
     }),
   });
-
-  if (!res.ok) {
-    let msg = `Annotation failed (${res.status})`;
-    try {
-      const err = await res.json();
-      if (err.detail) msg = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail);
-    } catch {
-      // ignore
-    }
-    throw new Error(msg);
-  }
-
-  return (await res.json()) as AnnotationItem;
 }
